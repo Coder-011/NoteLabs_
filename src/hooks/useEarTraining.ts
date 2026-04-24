@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef } from 'react';
-import { playNoteByFrequency, initAudio } from '../utils/audio';
+import { playNoteByFrequency, initAudio } from '../utils/audioEngine';
 import { getFrequencyForNote, FLUTE_SCALES } from '../utils/flute';
 import { savePracticeSession } from '../utils/storage';
+import { useFluteDetection } from './useFluteDetection';
 import type { EarTrainingData } from '../types';
 
 interface GameState {
@@ -37,6 +38,13 @@ export const useEarTraining = () => {
   const [feedback, setFeedback] = useState<string>('');
   const [detectedFreq, setDetectedFreq] = useState<number | null>(null);
   const sessionStartTime = useRef<number>(0);
+
+  const {
+    state: detectionState,
+    startDetection,
+    cancelDetection,
+    resetDetection,
+  } = useFluteDetection();
 
   const handleFluteSelect = useCallback((flute: string) => {
     setSelectedFlute(flute);
@@ -191,25 +199,13 @@ export const useEarTraining = () => {
   }, [gameState.attempts, saveSession]);
 
   const handleDetectFrequency = useCallback(async () => {
-    try {
-      const { startPitchDetection, stopPitchDetection } = await import('../utils/audio');
-      setFeedback('Listening... Play your Sa note');
-
-      await startPitchDetection((frequency) => {
-        setDetectedFreq(frequency);
-        setSaFrequency(frequency);
-        setFeedback(`Detected: ${frequency.toFixed(2)} Hz`);
-        stopPitchDetection();
-      });
-
-      // Stop after 3 seconds
-      setTimeout(() => {
-        stopPitchDetection();
-      }, 3000);
-    } catch (err) {
-      setFeedback('Microphone access denied or not available');
-    }
-  }, []);
+    resetDetection();
+    await startDetection((frequency) => {
+      setDetectedFreq(frequency);
+      setSaFrequency(frequency);
+      setFeedback(`Detected: ${frequency.toFixed(2)} Hz`);
+    });
+  }, [startDetection, resetDetection]);
 
   return {
     step,
@@ -220,6 +216,7 @@ export const useEarTraining = () => {
     gameState,
     feedback,
     detectedFreq,
+    detectionState,
     handleFluteSelect,
     handleSaFrequencyChange,
     toggleNote,
@@ -228,5 +225,6 @@ export const useEarTraining = () => {
     stopGame,
     playCurrentNote,
     handleDetectFrequency,
+    cancelDetection,
   };
 };

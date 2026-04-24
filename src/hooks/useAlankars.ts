@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { playNoteSequence, startMetronome, stopMetronome, stopAllAudio, initAudio, startTanpura, stopTanpura } from '../utils/audio';
+import { playNoteSequence, startMetronome, stopMetronome, stopAllAudio, initAudio, startTanpura, stopTanpura } from '../utils/audioEngine';
 import { generateAlankarPattern, getFrequencyForNote, FLUTE_SCALES } from '../utils/flute';
 import { savePracticeSession } from '../utils/storage';
 import type { AlankarData } from '../types';
