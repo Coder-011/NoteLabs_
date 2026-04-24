@@ -271,10 +271,87 @@ export const getNoteFromFrequency = (frequency: number, saFrequency: number): { 
   return { note: closestNote, octave, deviation };
 };
 
+// TANPURA DRONE
+let tanpuraOscillators: Tone.Oscillator[] = [];
+let tanpuraGain: Tone.Gain | null = null;
+let tanpuraLFO: Tone.LFO | null = null;
+
+export const startTanpura = async (baseFrequency: number): Promise<void> => {
+  await initAudio();
+  await stopTanpura();
+
+  // Create a rich tanpura-like drone using multiple oscillators with Indian classical intervals
+  // Pa (5th) = 702 cents, Sa (root) = 0, lower Sa = -1200
+  const paFreq = baseFrequency * Math.pow(2, 702 / 1200);
+  const lowerSaFreq = baseFrequency * 0.5;
+
+  // Main gain node with gentle envelope
+  tanpuraGain = new Tone.Gain(0).toDestination();
+
+  // Oscillator 1: Fundamental Sa (sine for warmth)
+  const osc1 = new Tone.Oscillator(baseFrequency, 'sine').connect(tanpuraGain);
+  osc1.volume.value = -8;
+
+  // Oscillator 2: Lower Sa (adds depth)
+  const osc2 = new Tone.Oscillator(lowerSaFreq, 'sine').connect(tanpuraGain);
+  osc2.volume.value = -14;
+
+  // Oscillator 3: Pa (5th harmonic - characteristic tanpura interval)
+  const osc3 = new Tone.Oscillator(paFreq, 'triangle').connect(tanpuraGain);
+  osc3.volume.value = -12;
+
+  // Oscillator 4: 2nd harmonic (octave above Sa)
+  const osc4 = new Tone.Oscillator(baseFrequency * 2, 'sine').connect(tanpuraGain);
+  osc4.volume.value = -18;
+
+  // Subtle amplitude modulation for organic feel
+  tanpuraLFO = new Tone.LFO(0.15, 0.85, 1.0).connect(tanpuraGain.gain);
+  tanpuraLFO.start();
+
+  // Start all oscillators
+  osc1.start();
+  osc2.start();
+  osc3.start();
+  osc4.start();
+
+  // Fade in
+  tanpuraGain.gain.rampTo(0.35, 2);
+
+  tanpuraOscillators = [osc1, osc2, osc3, osc4];
+};
+
+export const stopTanpura = async (): Promise<void> => {
+  if (tanpuraGain) {
+    // Fade out
+    tanpuraGain.gain.rampTo(0, 1);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    tanpuraOscillators.forEach(osc => {
+      osc.stop();
+      osc.dispose();
+    });
+    tanpuraOscillators = [];
+
+    if (tanpuraLFO) {
+      tanpuraLFO.stop();
+      tanpuraLFO.dispose();
+      tanpuraLFO = null;
+    }
+
+    tanpuraGain.dispose();
+    tanpuraGain = null;
+  }
+};
+
+export const isTanpuraPlaying = (): boolean => {
+  return tanpuraOscillators.length > 0;
+};
+
 // Stop all audio and clean up
 export const stopAllAudio = (): void => {
   stopMetronome();
   stopPitchDetection();
+  stopTanpura();
 
   if (synth) {
     synth.triggerRelease(Tone.now());

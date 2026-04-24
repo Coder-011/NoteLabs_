@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { playNoteSequence, startMetronome, stopMetronome, stopAllAudio, initAudio } from '../utils/audio';
+import { playNoteSequence, startMetronome, stopMetronome, stopAllAudio, initAudio, startTanpura, stopTanpura } from '../utils/audio';
 import { generateAlankarPattern, getFrequencyForNote, FLUTE_SCALES } from '../utils/flute';
 import { savePracticeSession } from '../utils/storage';
 import type { AlankarData } from '../types';
@@ -13,6 +13,7 @@ export const useAlankars = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number>(-1);
   const [metronomeActive, setMetronomeActive] = useState(false);
+  const [tanpuraActive, setTanpuraActive] = useState(false);
   const [patternLength, setPatternLength] = useState(0);
   const sessionStartTime = useRef<number>(0);
   const abortController = useRef<AbortController | null>(null);
@@ -41,8 +42,6 @@ export const useAlankars = () => {
 
     // Generate frequencies for all notes
     const freqs = notes.map((_, idx) => {
-      // Map the generated note index to the 15-note system
-      // The pattern generates notes sequentially, so we map to indices 0-14
       const noteIn15System = idx % 15;
       return getFrequencyForNote(noteIn15System, saFrequency);
     });
@@ -102,6 +101,42 @@ export const useAlankars = () => {
     await saveAlankarSession();
   }, [isPlaying, generatedFrequencies, tempo, handleGeneratePattern]);
 
+  // Standalone metronome toggle
+  const toggleMetronome = useCallback(async () => {
+    if (metronomeActive) {
+      await stopMetronome();
+      setMetronomeActive(false);
+    } else {
+      await initAudio();
+      setMetronomeActive(true);
+      await startMetronome(tempo, (beat) => {
+        if (beat % 4 === 0) {
+          // Accent beat
+        }
+      });
+    }
+  }, [metronomeActive, tempo]);
+
+  // Tanpura toggle
+  const toggleTanpura = useCallback(async () => {
+    if (tanpuraActive) {
+      await stopTanpura();
+      setTanpuraActive(false);
+    } else {
+      await startTanpura(saFrequency);
+      setTanpuraActive(true);
+    }
+  }, [tanpuraActive, saFrequency]);
+
+  // Update tanpura frequency while playing
+  const updateTanpuraFrequency = useCallback(async (freq: number) => {
+    setSaFrequency(freq);
+    if (tanpuraActive) {
+      await stopTanpura();
+      await startTanpura(freq);
+    }
+  }, [tanpuraActive]);
+
   const saveAlankarSession = useCallback(async () => {
     const duration = Date.now() - sessionStartTime.current;
     const userId = localStorage.getItem('userId') || 'default-user';
@@ -126,7 +161,8 @@ export const useAlankars = () => {
   }, [pattern, tempo, generatedNotes]);
 
   const handleFluteChange = useCallback((flute: string) => {
-    setSaFrequency(FLUTE_SCALES[flute].baseFrequency);
+    const freq = FLUTE_SCALES[flute].baseFrequency;
+    setSaFrequency(freq);
   }, []);
 
   return {
@@ -138,12 +174,16 @@ export const useAlankars = () => {
     isPlaying,
     currentNoteIndex,
     metronomeActive,
+    tanpuraActive,
     patternLength,
     handleAddToPattern,
     handleRemoveFromPattern,
     handleClearPattern,
     handleGeneratePattern,
     handlePlayPattern,
+    toggleMetronome,
+    toggleTanpura,
+    updateTanpuraFrequency,
     setTempo,
     handleFluteChange,
   };
