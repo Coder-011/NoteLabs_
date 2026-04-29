@@ -4,7 +4,7 @@ import { trimSilenceAndConvertToWav } from '../utils/audioBufferToWav';
 export type RecorderState = 'idle' | 'ready' | 'recording' | 'processing' | 'done';
 
 interface UseSmartRecorderProps {
-  onRecordingComplete?: (blob: Blob) => void;
+  onRecordingComplete?: (blob: Blob | null) => void;
   threshold?: number; // RMS threshold (0.0 to 1.0)
   maxDurationMs?: number; // max recording duration (e.g. 3000 for 3s)
   preRollMs?: number; // sliding buffer duration (e.g. 300ms)
@@ -68,7 +68,8 @@ export const useSmartRecorder = ({
 
   const processAudio = async () => {
     setState('processing');
-    const fullBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+    const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+    const fullBlob = new Blob(recordedChunksRef.current, { type: mimeType });
     
     try {
       const trimmedWavBlob = await trimSilenceAndConvertToWav(fullBlob);
@@ -78,6 +79,9 @@ export const useSmartRecorder = ({
       setState('idle');
     } catch (e) {
       console.error('Error processing audio', e);
+      if (onRecordingComplete) {
+        onRecordingComplete(null);
+      }
       setState('idle');
     }
     cleanup();

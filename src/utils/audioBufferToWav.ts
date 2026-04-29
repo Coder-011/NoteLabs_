@@ -51,10 +51,21 @@ export function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
 }
 
 export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
-  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
   const ctx = new AudioContextClass();
-  const arrayBuffer = await blob.arrayBuffer();
-  const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
+  
+  // Use FileReader for maximum compatibility (Brave/Safari)
+  const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(blob);
+  });
+
+  // Cross-browser decodeAudioData
+  const decodedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+    ctx.decodeAudioData(arrayBuffer, resolve, reject);
+  });
 
   const channelData = decodedBuffer.getChannelData(0);
   const threshold = 0.02; // Very low threshold for silence

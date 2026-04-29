@@ -20,7 +20,7 @@ export const FluteProfileManager = () => {
 
   const { state: recorderState, rms, timeRemaining, startReadyMode, stop, threshold } = useSmartRecorder({
     onRecordingComplete: async (blob) => {
-      if (activeProfile && activeProfile.id && recordingNote) {
+      if (blob && activeProfile && activeProfile.id && recordingNote) {
         await saveSample(activeProfile.id, recordingNote, blob);
         await loadProfilesAndSamples();
       }
