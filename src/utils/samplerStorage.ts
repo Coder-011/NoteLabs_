@@ -50,7 +50,8 @@ export const getProfiles = async (): Promise<FluteProfile[]> => {
 };
 
 export const getActiveProfile = async (): Promise<FluteProfile | undefined> => {
-  return await samplerDB.profiles.where('isActive').equals(1).first();
+  const profiles = await getProfiles();
+  return profiles.find(p => p.isActive);
 };
 
 export const setActiveProfile = async (id: number): Promise<void> => {

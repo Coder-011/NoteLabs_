@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Mic, Play, Plus, Loader, Trash2 } from 'lucide-react';
 import { 
-  getProfiles, addProfile, setActiveProfile, deleteProfile, getActiveProfile,
+  getProfiles, addProfile, setActiveProfile, deleteProfile, getActiveProfile, initSamplerDB,
   saveSample, getSamplesForProfile,
   type FluteProfile, type FluteSample
 } from '../utils/samplerStorage';
@@ -28,6 +28,7 @@ export const FluteProfileManager = () => {
   });
 
   const loadProfilesAndSamples = async () => {
+    await initSamplerDB();
     const profs = await getProfiles();
     setProfiles(profs);
     const active = await getActiveProfile();
