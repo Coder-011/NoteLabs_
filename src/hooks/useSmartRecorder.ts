@@ -22,8 +22,7 @@ function getRMS(dataArray: Uint8Array): number {
 export const useSmartRecorder = ({
   onRecordingComplete,
   threshold = 0.015,
-  maxDurationMs = 2000,
-  preRollMs = 300
+  maxDurationMs = 2000
 }: UseSmartRecorderProps = {}) => {
   const [state, setState] = useState<RecorderState>('idle');
   
