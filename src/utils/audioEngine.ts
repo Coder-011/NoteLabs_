@@ -271,7 +271,7 @@ let droneGainNodes: GainNode[] = [];
 let droneTimer: number | null = null;
 let isTanpuraRunning = false;
 
-export async function startTanpura(baseFreqFallback?: number): Promise<void> {
+export async function startTanpura(): Promise<void> {
   await initAudioEngine();
   if (isTanpuraRunning) return;
   isTanpuraRunning = true;

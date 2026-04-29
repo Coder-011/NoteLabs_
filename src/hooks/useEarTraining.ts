@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { playSampleNote, initAudio } from '../utils/audioEngine';
-import { getFrequencyForNote, FLUTE_SCALES } from '../utils/flute';
+import { FLUTE_SCALES } from '../utils/flute';
 import { savePracticeSession } from '../utils/storage';
 import { useFluteDetection } from './useFluteDetection';
 import type { EarTrainingData } from '../types';
