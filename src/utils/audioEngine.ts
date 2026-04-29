@@ -14,7 +14,7 @@ let isEngineReady = false;
 function getCtx(): AudioContext {
   if (!audioCtx) {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    audioCtx = new AudioContextClass({ sampleRate: 48000, latencyHint: 'playback' });
+    audioCtx = new AudioContextClass({ latencyHint: 'playback' });
   }
   return audioCtx;
 }

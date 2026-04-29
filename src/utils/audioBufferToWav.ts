@@ -108,10 +108,24 @@ export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
       decodedBuffer.sampleRate
     );
 
+    // Copy data and apply small fades to prevent clicks
+    const fadeSamples = Math.floor(decodedBuffer.sampleRate * 0.02); // 20ms fade
+
     for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
       const channelData = decodedBuffer.getChannelData(i);
       const trimmedData = trimmedBuffer.getChannelData(i);
+      
+      // Copy the segment
       trimmedData.set(channelData.subarray(startIndex, endIndex));
+
+      // Apply Fade In
+      for (let s = 0; s < Math.min(fadeSamples, length); s++) {
+        trimmedData[s] *= (s / fadeSamples);
+      }
+      // Apply Fade Out
+      for (let s = 0; s < Math.min(fadeSamples, length); s++) {
+        trimmedData[length - 1 - s] *= (s / fadeSamples);
+      }
     }
     
     ctx.close();

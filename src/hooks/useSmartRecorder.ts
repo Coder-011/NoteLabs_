@@ -41,15 +41,11 @@ export const useSmartRecorder = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   
-  const preRollChunksRef = useRef<Blob[]>([]);
   const recordedChunksRef = useRef<Blob[]>([]);
-  
   const animationFrameRef = useRef<number>(0);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isThresholdMetRef = useRef(false);
-
   const chunkSizeMs = 50;
-  const maxPreRollChunks = Math.ceil(preRollMs / chunkSizeMs);
 
   const cleanup = useCallback(() => {
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -99,7 +95,6 @@ export const useSmartRecorder = ({
       cleanup();
       setState('ready');
       isThresholdMetRef.current = false;
-      preRollChunksRef.current = [];
       recordedChunksRef.current = [];
       setRms(0);
 
@@ -150,20 +145,7 @@ export const useSmartRecorder = ({
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
-          if (!isThresholdMetRef.current) {
-            // Keep sliding buffer
-            preRollChunksRef.current.push(e.data);
-            if (preRollChunksRef.current.length > maxPreRollChunks) {
-              preRollChunksRef.current.shift();
-            }
-          } else {
-            // We are recording the note
-            if (recordedChunksRef.current.length === 0) {
-              // Prepend pre-roll chunks
-              recordedChunksRef.current.push(...preRollChunksRef.current);
-            }
-            recordedChunksRef.current.push(e.data);
-          }
+          recordedChunksRef.current.push(e.data);
         }
       };
 
