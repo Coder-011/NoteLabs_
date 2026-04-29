@@ -111,12 +111,25 @@ export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
     // Copy data and apply small fades to prevent clicks
     const fadeSamples = Math.floor(decodedBuffer.sampleRate * 0.02); // 20ms fade
 
+    // --- Peak normalization: find max amplitude across all channels ---
+    let peak = 0;
+    for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
+      const src = decodedBuffer.getChannelData(i).subarray(startIndex, endIndex);
+      for (let s = 0; s < src.length; s++) {
+        const abs = Math.abs(src[s]);
+        if (abs > peak) peak = abs;
+      }
+    }
+    const normalizeGain = peak > 0.001 ? 0.92 / peak : 1.0; // target ~-0.7 dBFS
+
     for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
       const channelData = decodedBuffer.getChannelData(i);
       const trimmedData = trimmedBuffer.getChannelData(i);
       
-      // Copy the segment
-      trimmedData.set(channelData.subarray(startIndex, endIndex));
+      // Copy the segment with normalization
+      for (let s = 0; s < length; s++) {
+        trimmedData[s] = channelData[startIndex + s] * normalizeGain;
+      }
 
       // Apply Fade In
       for (let s = 0; s < Math.min(fadeSamples, length); s++) {

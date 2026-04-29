@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mic, Play, Plus, Loader, Trash2 } from 'lucide-react';
-import { playSampleNote, resumeAudioContextSync } from '../utils/audioEngine';
+import { playSampleNote, resumeAudioContextSync, clearSampleCache } from '../utils/audioEngine';
 import { 
   getProfiles, addProfile, setActiveProfile, deleteProfile, getActiveProfile, initSamplerDB,
   saveSample, getSamplesForProfile,
@@ -26,6 +26,7 @@ export const FluteProfileManager = () => {
         try {
           await saveSample(activeProfile.id, recordingNote, blob);
           console.log('Sample saved successfully');
+          clearSampleCache(activeProfile.id);
           await loadProfilesAndSamples();
         } catch (err) {
           console.error('Failed to save sample:', err);
@@ -77,10 +78,18 @@ export const FluteProfileManager = () => {
   };
 
   const handleRecordNote = async (note: string) => {
-    if (recorderState !== 'idle' && recorderState !== 'done') {
+    // If already recording this same note → cancel
+    if (recordingNote === note && recorderState !== 'idle' && recorderState !== 'done') {
       stop();
       setRecordingNote(null);
       return;
+    }
+    // If recording a different note → stop that first, then start new
+    if (recorderState !== 'idle' && recorderState !== 'done') {
+      stop();
+      setRecordingNote(null);
+      // Small delay to let cleanup settle before starting new recording
+      await new Promise(r => setTimeout(r, 150));
     }
     setRecordingNote(note);
     const success = await startReadyMode();
@@ -175,7 +184,6 @@ export const FluteProfileManager = () => {
                       <button 
                         onClick={() => handleRecordNote(note)}
                         className={`flex-1 py-2 rounded-md flex items-center justify-center transition-colors ${hasSample ? 'bg-[#d4a574]/20 text-[#d4a574] hover:bg-[#d4a574]/30' : 'bg-[#3d4556] text-white hover:bg-[#4d576a]'}`}
-                        disabled={recordingNote !== null}
                       >
                         <Mic size={16} />
                       </button>

@@ -167,6 +167,16 @@ function playBuffer(buf: AudioBuffer, when?: number, rate = 1.0, durationSec = 1
   return src;
 }
 
+export function clearSampleCache(profileId?: number): void {
+  if (profileId === undefined) {
+    decodedBufferCache.clear();
+  } else {
+    for (const key of decodedBufferCache.keys()) {
+      if (key.startsWith(`${profileId}_`)) decodedBufferCache.delete(key);
+    }
+  }
+}
+
 export async function playSampleNote(noteName: string, durationSec = 1.4, when?: number): Promise<void> {
   await initAudioEngine();
   const sampleData = await loadSampleBuffer(noteName);
