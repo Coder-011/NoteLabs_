@@ -26,6 +26,13 @@ export const useSmartRecorder = ({
   preRollMs = 300
 }: UseSmartRecorderProps = {}) => {
   const [state, setState] = useState<RecorderState>('idle');
+  
+  // Use a ref for the callback to avoid closure staleness
+  const onRecordingCompleteRef = useRef(onRecordingComplete);
+  useEffect(() => {
+    onRecordingCompleteRef.current = onRecordingComplete;
+  }, [onRecordingComplete]);
+
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [rms, setRms] = useState(0);
 
@@ -73,14 +80,14 @@ export const useSmartRecorder = ({
     
     try {
       const trimmedWavBlob = await trimSilenceAndConvertToWav(fullBlob);
-      if (onRecordingComplete) {
-        await Promise.resolve(onRecordingComplete(trimmedWavBlob));
+      if (onRecordingCompleteRef.current) {
+        await Promise.resolve(onRecordingCompleteRef.current(trimmedWavBlob));
       }
       setState('idle');
     } catch (e) {
       console.error('Error processing audio', e);
-      if (onRecordingComplete) {
-        onRecordingComplete(null);
+      if (onRecordingCompleteRef.current) {
+        onRecordingCompleteRef.current(null);
       }
       setState('idle');
     }

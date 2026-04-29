@@ -20,9 +20,18 @@ export const FluteProfileManager = () => {
 
   const { state: recorderState, rms, timeRemaining, startReadyMode, stop, threshold } = useSmartRecorder({
     onRecordingComplete: async (blob) => {
+      console.log('Recording complete, blob:', blob);
       if (blob && activeProfile && activeProfile.id && recordingNote) {
-        await saveSample(activeProfile.id, recordingNote, blob);
-        await loadProfilesAndSamples();
+        console.log(`Saving sample for ${recordingNote} in profile ${activeProfile.name}`);
+        try {
+          await saveSample(activeProfile.id, recordingNote, blob);
+          console.log('Sample saved successfully');
+          await loadProfilesAndSamples();
+        } catch (err) {
+          console.error('Failed to save sample:', err);
+        }
+      } else {
+        console.warn('Incomplete data for saving:', { hasBlob: !!blob, activeProfile, recordingNote });
       }
       setRecordingNote(null);
     }

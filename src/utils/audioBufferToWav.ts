@@ -54,68 +54,72 @@ export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
   const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
   const ctx = new AudioContextClass();
   
-  // Use FileReader for maximum compatibility (Brave/Safari)
-  const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(blob);
-  });
+  try {
+    // Use FileReader for maximum compatibility (Brave/Safari)
+    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as ArrayBuffer);
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    });
 
-  // Cross-browser decodeAudioData
-  const decodedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
-    ctx.decodeAudioData(arrayBuffer, resolve, reject);
-  });
+    // Cross-browser decodeAudioData
+    const decodedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+      ctx.decodeAudioData(arrayBuffer, resolve, reject);
+    });
 
-  const channelData = decodedBuffer.getChannelData(0);
-  const threshold = 0.02; // Very low threshold for silence
-  let endIndex = channelData.length - 1;
-  let startIndex = 0;
+    const channelData = decodedBuffer.getChannelData(0);
+    const threshold = 0.02; // Very low threshold for silence
+    let endIndex = channelData.length - 1;
+    let startIndex = 0;
 
-  // Find the start by scanning forwards
-  while (startIndex < channelData.length) {
-    if (Math.abs(channelData[startIndex]) > threshold) {
-      break;
+    // Find the start by scanning forwards
+    while (startIndex < channelData.length) {
+      if (Math.abs(channelData[startIndex]) > threshold) {
+        break;
+      }
+      startIndex++;
     }
-    startIndex++;
-  }
 
-  // Find the end by scanning backwards
-  while (endIndex > startIndex) {
-    if (Math.abs(channelData[endIndex]) > threshold) {
-      break;
+    // Find the end by scanning backwards
+    while (endIndex > startIndex) {
+      if (Math.abs(channelData[endIndex]) > threshold) {
+        break;
+      }
+      endIndex--;
     }
-    endIndex--;
+
+    // Add tail and head to prevent abrupt cut
+    const tailSamples = Math.floor(ctx.sampleRate * 0.1);
+    const headSamples = Math.floor(ctx.sampleRate * 0.05);
+    
+    startIndex = Math.max(0, startIndex - headSamples);
+    endIndex = Math.min(channelData.length, endIndex + tailSamples);
+
+    // Minimum length check
+    if (endIndex - startIndex < ctx.sampleRate * 0.2) {
+      endIndex = Math.min(channelData.length, startIndex + Math.floor(ctx.sampleRate * 0.2));
+    }
+
+    const length = endIndex - startIndex;
+    const trimmedBuffer = ctx.createBuffer(
+      decodedBuffer.numberOfChannels,
+      length,
+      decodedBuffer.sampleRate
+    );
+
+    for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
+      const channelData = decodedBuffer.getChannelData(i);
+      const trimmedData = trimmedBuffer.getChannelData(i);
+      trimmedData.set(channelData.subarray(startIndex, endIndex));
+    }
+    
+    ctx.close();
+    return audioBufferToWavBlob(trimmedBuffer);
+  } catch (err) {
+    console.error('Trimming failed, returning original blob:', err);
+    ctx.close();
+    // Fallback: convert original blob to WAV if possible, or just return as is
+    return blob; 
   }
-
-  // Add 100ms tail and 50ms head to prevent abrupt cut
-  const tailSamples = Math.floor(ctx.sampleRate * 0.1);
-  const headSamples = Math.floor(ctx.sampleRate * 0.05);
-  
-  startIndex = Math.max(0, startIndex - headSamples);
-  endIndex = Math.min(channelData.length, endIndex + tailSamples);
-
-  // If the sound is incredibly short, just keep a minimum
-  if (endIndex - startIndex < ctx.sampleRate * 0.5) {
-    endIndex = Math.min(channelData.length, startIndex + Math.floor(ctx.sampleRate * 0.5));
-  }
-
-  const length = endIndex - startIndex;
-
-  const trimmedBuffer = ctx.createBuffer(
-    decodedBuffer.numberOfChannels,
-    length,
-    decodedBuffer.sampleRate
-  );
-
-  for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
-    const channelData = decodedBuffer.getChannelData(i);
-    const trimmedData = trimmedBuffer.getChannelData(i);
-    trimmedData.set(channelData.subarray(startIndex, endIndex));
-  }
-  
-  // Close context to avoid memory leak
-  ctx.close();
-
-  return audioBufferToWavBlob(trimmedBuffer);
 }
