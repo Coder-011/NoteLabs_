@@ -61,7 +61,7 @@ export const useAlankars = () => {
       return;
     }
 
-    if (generatedFrequencies.length === 0) {
+    if (generatedNotes.length === 0) {
       handleGeneratePattern();
       return;
     }
@@ -81,7 +81,7 @@ export const useAlankars = () => {
 
     // Play note sequence
     try {
-      await playNoteSequence(generatedFrequencies, tempo, (index) => {
+      await playNoteSequence(generatedNotes, tempo, (index) => {
         setCurrentNoteIndex(index);
       });
 

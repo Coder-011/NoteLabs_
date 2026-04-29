@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { playNoteByFrequency, initAudio } from '../utils/audioEngine';
+import { playSampleNote, initAudio } from '../utils/audioEngine';
 import { getFrequencyForNote, FLUTE_SCALES } from '../utils/flute';
 import { savePracticeSession } from '../utils/storage';
 import { useFluteDetection } from './useFluteDetection';
@@ -74,9 +74,9 @@ export const useEarTraining = () => {
   const playCurrentNote = useCallback(async () => {
     await initAudio();
     const noteIndex = gameState.currentNoteIndex;
-    const freq = getFrequencyForNote(noteIndex, saFrequency);
-    await playNoteByFrequency(freq, 1.0);
-  }, [gameState.currentNoteIndex, saFrequency]);
+    const currentNote = ALL_NOTES[noteIndex];
+    await playSampleNote(currentNote, 1.0);
+  }, [gameState.currentNoteIndex]);
 
   const startGame = useCallback(async () => {
     if (selectedNotes.length === 0) return;
@@ -100,10 +100,10 @@ export const useEarTraining = () => {
 
     // Play first note after a short delay
     setTimeout(() => {
-      const freq = getFrequencyForNote(index, saFrequency);
-      playNoteByFrequency(freq, 1.0);
+      const currentNote = ALL_NOTES[index];
+      playSampleNote(currentNote, 1.0);
     }, 500);
-  }, [selectedNotes, getRandomNote, saFrequency]);
+  }, [selectedNotes, getRandomNote]);
 
   const handleGuess = useCallback(async (guessedNote: string) => {
     const currentNote = ALL_NOTES[gameState.currentNoteIndex];
@@ -137,8 +137,8 @@ export const useEarTraining = () => {
 
           // Play next note
           setTimeout(() => {
-            const freq = getFrequencyForNote(index, saFrequency);
-            playNoteByFrequency(freq, 1.0);
+            const nextNote = ALL_NOTES[index];
+            playSampleNote(nextNote, 1.0);
           }, 300);
         } else {
           // Game complete
