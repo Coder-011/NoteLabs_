@@ -107,10 +107,20 @@ async function loadSampleBuffer(noteName: string): Promise<{ buffer: AudioBuffer
     rate = Math.pow(2, cents / 1200);
   }
 
-  const arrayBuffer = await sample.blob.arrayBuffer();
+  // Use FileReader for maximum compatibility
+  const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(sample!.blob);
+  });
+
   const ctx = getCtx();
   
-  const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
+  // Universal decodeAudioData (handles Safari/Brave callbacks)
+  const decodedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+    ctx.decodeAudioData(arrayBuffer, resolve, reject);
+  });
   
   if (rate === 1.0) {
     decodedBufferCache.set(cacheKey, decodedBuffer);
