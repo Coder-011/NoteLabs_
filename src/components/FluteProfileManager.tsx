@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mic, Play, Plus, Loader, Trash2 } from 'lucide-react';
-import { playSampleNote } from '../utils/audioEngine';
+import { playSampleNote, resumeAudioContextSync } from '../utils/audioEngine';
 import { 
   getProfiles, addProfile, setActiveProfile, deleteProfile, getActiveProfile, initSamplerDB,
   saveSample, getSamplesForProfile,
@@ -78,6 +78,7 @@ export const FluteProfileManager = () => {
   };
 
   const handlePlaySample = (note: string) => {
+    resumeAudioContextSync();
     playSampleNote(note, 1.4);
   };
 

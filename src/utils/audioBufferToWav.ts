@@ -51,7 +51,8 @@ export function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
 }
 
 export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
-  const ctx = new window.AudioContext();
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  const ctx = new AudioContextClass();
   const arrayBuffer = await blob.arrayBuffer();
   const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
 
@@ -90,18 +91,17 @@ export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
 
   const length = endIndex - startIndex;
 
-  const trimmedCtx = new OfflineAudioContext(
+  const trimmedBuffer = ctx.createBuffer(
     decodedBuffer.numberOfChannels,
     length,
     decodedBuffer.sampleRate
   );
 
-  const source = trimmedCtx.createBufferSource();
-  source.buffer = decodedBuffer;
-  source.connect(trimmedCtx.destination);
-  source.start(0, startIndex / decodedBuffer.sampleRate, length / decodedBuffer.sampleRate);
-
-  const trimmedBuffer = await trimmedCtx.startRendering();
+  for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
+    const channelData = decodedBuffer.getChannelData(i);
+    const trimmedData = trimmedBuffer.getChannelData(i);
+    trimmedData.set(channelData.subarray(startIndex, endIndex));
+  }
   
   // Close context to avoid memory leak
   ctx.close();

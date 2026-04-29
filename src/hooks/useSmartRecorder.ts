@@ -21,7 +21,7 @@ function getRMS(dataArray: Uint8Array): number {
 
 export const useSmartRecorder = ({
   onRecordingComplete,
-  threshold = 0.03,
+  threshold = 0.015,
   maxDurationMs = 2000,
   preRollMs = 300
 }: UseSmartRecorderProps = {}) => {
@@ -72,10 +72,10 @@ export const useSmartRecorder = ({
     
     try {
       const trimmedWavBlob = await trimSilenceAndConvertToWav(fullBlob);
-      setState('done');
       if (onRecordingComplete) {
-        onRecordingComplete(trimmedWavBlob);
+        await Promise.resolve(onRecordingComplete(trimmedWavBlob));
       }
+      setState('idle');
     } catch (e) {
       console.error('Error processing audio', e);
       setState('idle');
@@ -94,9 +94,9 @@ export const useSmartRecorder = ({
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          echoCancellation: true,
-          autoGainControl: true,
-          noiseSuppression: true
+          echoCancellation: false,
+          autoGainControl: false,
+          noiseSuppression: false
         } 
       });
       streamRef.current = stream;

@@ -12,12 +12,17 @@ let isEngineReady = false;
 
 function getCtx(): AudioContext {
   if (!audioCtx) {
-    audioCtx = new AudioContext({ sampleRate: 48000, latencyHint: 'playback' });
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    audioCtx = new AudioContextClass({ sampleRate: 48000, latencyHint: 'playback' });
   }
   return audioCtx;
+}
+
+export function resumeAudioContextSync(): void {
+  const ctx = getCtx();
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(console.error);
+  }
 }
 
 function ensureMasterChain() {
