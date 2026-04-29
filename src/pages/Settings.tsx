@@ -260,11 +260,11 @@ export const SettingsPage = () => {
                       <div className="w-full h-4 bg-[#252d3d] rounded-full overflow-hidden relative">
                         <div 
                           className="h-full bg-gradient-to-r from-green-400 to-red-500 transition-all duration-100"
-                          style={{ width: \`\${Math.min(100, rms * 500)}%\` }}
+                          style={{ width: `${Math.min(100, rms * 500)}%` }}
                         />
                         <div 
                           className="absolute top-0 bottom-0 w-0.5 bg-white"
-                          style={{ left: \`\${threshold * 500}%\` }}
+                          style={{ left: `${threshold * 500}%` }}
                         />
                       </div>
                     </div>
