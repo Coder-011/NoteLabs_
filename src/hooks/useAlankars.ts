@@ -123,7 +123,7 @@ export const useAlankars = () => {
       await stopTanpura();
       setTanpuraActive(false);
     } else {
-      await startTanpura(saFrequency);
+      await startTanpura();
       setTanpuraActive(true);
     }
   }, [tanpuraActive, saFrequency]);
@@ -133,7 +133,7 @@ export const useAlankars = () => {
     setSaFrequency(freq);
     if (tanpuraActive) {
       await stopTanpura();
-      await startTanpura(freq);
+      await startTanpura();
     }
   }, [tanpuraActive]);
 
