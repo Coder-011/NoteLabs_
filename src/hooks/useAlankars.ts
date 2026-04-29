@@ -14,6 +14,7 @@ export const useAlankars = () => {
   const [currentNoteIndex, setCurrentNoteIndex] = useState<number>(-1);
   const [metronomeActive, setMetronomeActive] = useState(false);
   const [tanpuraActive, setTanpuraActive] = useState(false);
+
   const [patternLength, setPatternLength] = useState(0);
   const sessionStartTime = useRef<number>(0);
   const abortController = useRef<AbortController | null>(null);
@@ -123,7 +124,7 @@ export const useAlankars = () => {
       await stopTanpura();
       setTanpuraActive(false);
     } else {
-      await startTanpura();
+      await startTanpura(saFrequency);
       setTanpuraActive(true);
     }
   }, [tanpuraActive, saFrequency]);
@@ -133,7 +134,7 @@ export const useAlankars = () => {
     setSaFrequency(freq);
     if (tanpuraActive) {
       await stopTanpura();
-      await startTanpura();
+      await startTanpura(freq);
     }
   }, [tanpuraActive]);
 

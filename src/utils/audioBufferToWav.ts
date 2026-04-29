@@ -58,34 +58,48 @@ export async function trimSilenceAndConvertToWav(blob: Blob): Promise<Blob> {
   const channelData = decodedBuffer.getChannelData(0);
   const threshold = 0.02; // Very low threshold for silence
   let endIndex = channelData.length - 1;
+  let startIndex = 0;
+
+  // Find the start by scanning forwards
+  while (startIndex < channelData.length) {
+    if (Math.abs(channelData[startIndex]) > threshold) {
+      break;
+    }
+    startIndex++;
+  }
 
   // Find the end by scanning backwards
-  while (endIndex > 0) {
+  while (endIndex > startIndex) {
     if (Math.abs(channelData[endIndex]) > threshold) {
       break;
     }
     endIndex--;
   }
 
-  // Add 100ms tail to prevent abrupt cut
+  // Add 100ms tail and 50ms head to prevent abrupt cut
   const tailSamples = Math.floor(ctx.sampleRate * 0.1);
+  const headSamples = Math.floor(ctx.sampleRate * 0.05);
+  
+  startIndex = Math.max(0, startIndex - headSamples);
   endIndex = Math.min(channelData.length, endIndex + tailSamples);
 
   // If the sound is incredibly short, just keep a minimum
-  if (endIndex < ctx.sampleRate * 0.5) {
-    endIndex = Math.min(channelData.length, Math.floor(ctx.sampleRate * 0.5));
+  if (endIndex - startIndex < ctx.sampleRate * 0.5) {
+    endIndex = Math.min(channelData.length, startIndex + Math.floor(ctx.sampleRate * 0.5));
   }
+
+  const length = endIndex - startIndex;
 
   const trimmedCtx = new OfflineAudioContext(
     decodedBuffer.numberOfChannels,
-    endIndex,
+    length,
     decodedBuffer.sampleRate
   );
 
   const source = trimmedCtx.createBufferSource();
   source.buffer = decodedBuffer;
   source.connect(trimmedCtx.destination);
-  source.start();
+  source.start(0, startIndex / decodedBuffer.sampleRate, length / decodedBuffer.sampleRate);
 
   const trimmedBuffer = await trimmedCtx.startRendering();
   

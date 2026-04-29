@@ -53,40 +53,23 @@ async function makeClickBuffer(accent: boolean): Promise<AudioBuffer> {
   const key = accent ? 'click_accent' : 'click_normal';
   if (decodedBufferCache.has(key)) return decodedBufferCache.get(key)!;
 
-  const duration = 0.06;
+  const duration = 0.08;
   const buf = await renderOffline(duration, 48000, (ctx) => {
-    const noiseDur = 0.015;
-    const noiseLen = Math.ceil(noiseDur * 48000);
-    const noiseBuffer = ctx.createBuffer(1, noiseLen, 48000);
-    const noiseData = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < noiseLen; i++) {
-      noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (noiseLen * 0.3));
-    }
-    const noiseSrc = ctx.createBufferSource();
-    noiseSrc.buffer = noiseBuffer;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = 'bandpass';
-    noiseFilter.frequency.value = accent ? 1200 : 900;
-    noiseFilter.Q.value = 1.5;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = accent ? 0.9 : 0.55;
-    noiseSrc.connect(noiseFilter).connect(noiseGain);
-
     const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = accent ? 1000 : 750;
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(accent ? 1200 : 800, 0);
+    osc.frequency.exponentialRampToValueAtTime(accent ? 400 : 300, 0.01);
+
     const oscGain = ctx.createGain();
-    oscGain.gain.setValueAtTime(accent ? 0.7 : 0.4, 0);
+    oscGain.gain.setValueAtTime(accent ? 1.0 : 0.7, 0);
     oscGain.gain.exponentialRampToValueAtTime(0.001, duration);
     osc.connect(oscGain);
 
     const master = ctx.createGain();
-    master.gain.value = 0.7;
-    noiseGain.connect(master);
+    master.gain.value = 0.9;
     oscGain.connect(master);
     master.connect(ctx.destination);
 
-    noiseSrc.start();
     osc.start();
     osc.stop(duration);
   });
@@ -271,49 +254,72 @@ let droneGainNodes: GainNode[] = [];
 let droneTimer: number | null = null;
 let isTanpuraRunning = false;
 
-export async function startTanpura(): Promise<void> {
+export async function startTanpura(baseFreq: number = 261.63): Promise<void> {
   await initAudioEngine();
   if (isTanpuraRunning) return;
   isTanpuraRunning = true;
   const ctx = getCtx();
-  
-  const sampleData = await loadSampleBuffer('Sa');
-  if (!sampleData) {
-    console.warn("Cannot start Tanpura: No 'Sa' sample found.");
-    isTanpuraRunning = false;
-    return;
-  }
 
-  const buffer = sampleData.buffer;
-  let loopDuration = buffer.duration - 0.5; // 500ms crossfade
-  if (loopDuration <= 0.1) loopDuration = buffer.duration; // Fallback if too short
+  const loopDuration = 4.0; // 4 seconds per strum
 
   function scheduleNextDrone(time: number) {
     if (!isTanpuraRunning) return;
 
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(0.7, time + 0.5); // 500ms crossfade in
-    env.gain.setValueAtTime(0.7, time + loopDuration);
-    env.gain.linearRampToValueAtTime(0, time + loopDuration + 0.5); // 500ms crossfade out
-    
-    src.connect(env).connect(masterGain!);
-    src.start(time);
-    src.stop(time + loopDuration + 0.5);
+    const droneMaster = ctx.createGain();
+    droneMaster.gain.setValueAtTime(0, time);
+    droneMaster.gain.linearRampToValueAtTime(0.8, time + 1.0);
+    droneMaster.gain.setValueAtTime(0.8, time + loopDuration - 1.0);
+    droneMaster.gain.linearRampToValueAtTime(0, time + loopDuration);
+    droneMaster.connect(masterGain!);
 
-    droneSources.push(src);
-    droneGainNodes.push(env);
+    const harmonics = [
+      { ratio: 1.0, gain: 0.5 },    // Sa (Fundamental)
+      { ratio: 1.4983, gain: 0.4 }, // Pa (Perfect 5th)
+      { ratio: 2.0, gain: 0.3 },    // Sa' (Octave)
+      { ratio: 2.9966, gain: 0.1 }  // Pa' (Octave 5th)
+    ];
 
-    if (droneSources.length > 3) {
-      droneSources.shift();
+    harmonics.forEach(h => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = baseFreq * h.ratio;
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = baseFreq * 6;
+      filter.Q.value = 2;
+
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = Math.random() * 0.5 + 0.2; // Slow shimmer
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 100;
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+      lfo.start(time);
+      lfo.stop(time + loopDuration);
+
+      const oscEnv = ctx.createGain();
+      oscEnv.gain.value = h.gain;
+      
+      osc.connect(filter).connect(oscEnv).connect(droneMaster);
+      osc.start(time);
+      osc.stop(time + loopDuration);
+      
+      // Type assertion because we're mixing types in the droneSources array for simplicity
+      droneSources.push(osc as unknown as AudioBufferSourceNode);
+    });
+
+    droneGainNodes.push(droneMaster);
+
+    if (droneGainNodes.length > 5) {
       droneGainNodes.shift();
     }
+    if (droneSources.length > 20) {
+      droneSources = droneSources.slice(-20);
+    }
 
-    const nextTimeMs = (time + loopDuration - ctx.currentTime) * 1000;
-    droneTimer = window.setTimeout(() => scheduleNextDrone(time + loopDuration), nextTimeMs - 100);
+    const nextTimeMs = (time + loopDuration - 1.0 - ctx.currentTime) * 1000;
+    droneTimer = window.setTimeout(() => scheduleNextDrone(time + loopDuration - 1.0), nextTimeMs - 100);
   }
 
   scheduleNextDrone(ctx.currentTime);

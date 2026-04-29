@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Mic, Play, Plus, Loader, Trash2 } from 'lucide-react';
+import { playSampleNote } from '../utils/audioEngine';
 import { 
   getProfiles, addProfile, setActiveProfile, deleteProfile, getActiveProfile, initSamplerDB,
   saveSample, getSamplesForProfile,

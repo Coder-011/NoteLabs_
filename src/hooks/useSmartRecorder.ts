@@ -21,8 +21,8 @@ function getRMS(dataArray: Uint8Array): number {
 
 export const useSmartRecorder = ({
   onRecordingComplete,
-  threshold = 0.05,
-  maxDurationMs = 3000,
+  threshold = 0.03,
+  maxDurationMs = 2000,
   preRollMs = 300
 }: UseSmartRecorderProps = {}) => {
   const [state, setState] = useState<RecorderState>('idle');
@@ -94,9 +94,9 @@ export const useSmartRecorder = ({
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          echoCancellation: false,
-          autoGainControl: false,
-          noiseSuppression: false
+          echoCancellation: true,
+          autoGainControl: true,
+          noiseSuppression: true
         } 
       });
       streamRef.current = stream;

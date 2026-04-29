@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Music, Play, Square, Volume2, Clock, Trash2, Radio, Waves } from 'lucide-react';
+import { Music, Play, Square, Volume2, Clock, Trash2, Radio, Waves, Mic } from 'lucide-react';
 import { useAlankars } from '../hooks/useAlankars';
+import { FLUTE_SCALES } from '../utils/flute';
 
 export const AlankarsPage = () => {
   const {
@@ -19,10 +20,29 @@ export const AlankarsPage = () => {
     handlePlayPattern,
     toggleMetronome,
     toggleTanpura,
+    saFrequency,
+    updateTanpuraFrequency,
+    handleFluteChange,
     setTempo,
   } = useAlankars();
 
-  const [selectedFlute] = useState('Active Profile');
+  const [selectedFlute, setSelectedFlute] = useState('C');
+  const [customFreq, setCustomFreq] = useState('');
+  const [showTanpuraSettings, setShowTanpuraSettings] = useState(false);
+
+  const handleFluteSelect = (flute: string) => {
+    setSelectedFlute(flute);
+    handleFluteChange(flute);
+  };
+
+  const handleCustomFreqChange = (val: string) => {
+    setCustomFreq(val);
+    const num = parseFloat(val);
+    if (!isNaN(num) && num > 50 && num < 2000) {
+      updateTanpuraFrequency(num);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0f1419] pb-32 px-4 pt-12">
       <div className="max-w-4xl mx-auto">
@@ -135,6 +155,58 @@ export const AlankarsPage = () => {
               )}
 
 
+              <button
+                onClick={() => setShowTanpuraSettings(!showTanpuraSettings)}
+                className="text-secondary text-xs hover:text-[#d4a574] transition-colors mt-4"
+              >
+                {showTanpuraSettings ? 'Hide' : 'Show'} drone settings ▾
+              </button>
+
+              {showTanpuraSettings && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="block text-secondary text-xs mb-2">Select Base Flute</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {Object.keys(FLUTE_SCALES).map(flute => (
+                        <button
+                          key={flute}
+                          onClick={() => handleFluteSelect(flute)}
+                          className={`py-2 rounded-lg font-semibold text-xs transition-all ${
+                            selectedFlute === flute
+                              ? 'bg-gradient-to-r from-[#d4a574] to-[#0f8b8d] text-white'
+                              : 'bg-[#1a1f2e] text-[#a1a1aa] border border-[#3d4556] hover:border-[#d4a574]'
+                          }`}
+                        >
+                          {flute}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-secondary text-xs mb-2 flex items-center gap-1">
+                      <Mic size={12} />
+                      Custom Frequency (Hz)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={customFreq || saFrequency}
+                        onChange={(e) => handleCustomFreqChange(e.target.value)}
+                        className="input-field flex-1 text-sm"
+                        placeholder="261.63"
+                        min="50"
+                        max="2000"
+                        step="0.01"
+                      />
+                      <span className="flex items-center text-[#a1a1aa] text-sm font-semibold">Hz</span>
+                    </div>
+                    <p className="text-secondary text-xs mt-1">
+                      Current: {saFrequency.toFixed(2)} Hz
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Metronome Section */}
