@@ -19,9 +19,7 @@ export const NOTE_NAMES = ['Pa', 'Dha', 'Ni', 'Sa', 'Re', 'Ga', 'Ma'];
 // Middle octave (madhya saptak): indices 7-13
 // Higher octave (taar saptak): index 14
 export const ALANKAR_NOTES = [
-  'Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni',  // Lower octave (indices 0-6)
-  'Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni',  // Middle octave (indices 7-13)
-  'Sa',                                          // Higher octave (index 14)
+  'Sa', 'Re', 'Ga', 'Ma', 'Pa', 'Dha', 'Ni', "Sa'" // 8-note system
 ];
 
 // Semitone intervals from Sa for each note (in cents)
@@ -34,6 +32,7 @@ export const NOTE_INTERVALS = {
   'Pa': 702,
   'Dha': 906,
   'Ni': 1110,
+  "Sa'": 1200,
 };
 
 export const getFrequencyForNote = (noteIndex: number, saFrequency: number): number => {
@@ -79,9 +78,9 @@ export const formatDeviation = (deviation: number): string => {
   return sign + deviation.toFixed(2) + ' cents';
 };
 
-// Generate alankar pattern notes across all 15 notes (lower to higher octave)
+// Generate alankar pattern notes across all 8 notes
 // pattern: [1, 2, 3] means from each starting note, play note, note+1, note+2
-export const generateAlankarPattern = (pattern: number[], totalNotes: number = 15): string[] => {
+export const generateAlankarPattern = (pattern: number[], totalNotes: number = 8): string[] => {
   const result: string[] = [];
 
   // For each starting position, apply the pattern

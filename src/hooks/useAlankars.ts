@@ -19,7 +19,7 @@ export const useAlankars = () => {
   const abortController = useRef<AbortController | null>(null);
 
   const handleAddToPattern = useCallback((num: number) => {
-    if (pattern.length >= 7) return;
+    if (pattern.length >= 8) return;
     setPattern(prev => [...prev, num]);
   }, [pattern.length]);
 
@@ -36,14 +36,14 @@ export const useAlankars = () => {
 
   const handleGeneratePattern = useCallback(() => {
     if (pattern.length === 0) return;
-    const notes = generateAlankarPattern(pattern, 15);
+    const notes = generateAlankarPattern(pattern, 8);
     setGeneratedNotes(notes);
     setPatternLength(notes.length);
 
     // Generate frequencies for all notes
     const freqs = notes.map((_, idx) => {
-      const noteIn15System = idx % 15;
-      return getFrequencyForNote(noteIn15System, saFrequency);
+      const noteIn8System = idx % 8;
+      return getFrequencyForNote(noteIn8System, saFrequency);
     });
     setGeneratedFrequencies(freqs);
     setCurrentNoteIndex(-1);
