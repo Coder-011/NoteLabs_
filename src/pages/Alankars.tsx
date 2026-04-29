@@ -20,7 +20,6 @@ export const AlankarsPage = () => {
     handlePlayPattern,
     toggleMetronome,
     toggleTanpura,
-    saFrequency,
     updateTanpuraFrequency,
     handleFluteChange,
     setTempo,
