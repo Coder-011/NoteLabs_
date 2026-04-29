@@ -19,9 +19,7 @@ export const AlankarsPage = () => {
     handlePlayPattern,
     toggleMetronome,
     toggleTanpura,
-    updateTanpuraFrequency,
     setTempo,
-    handleFluteChange,
   } = useAlankars();
 
   const [selectedFlute] = useState('Active Profile');
