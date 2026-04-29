@@ -83,7 +83,7 @@ export const useSmartRecorder = ({
     cleanup();
   };
 
-  const startReadyMode = async () => {
+  const startReadyMode = async (): Promise<boolean> => {
     try {
       cleanup();
       setState('ready');
@@ -128,7 +128,13 @@ export const useSmartRecorder = ({
       };
       checkVolume();
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      let options = {};
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options = { mimeType: 'audio/webm' };
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        options = { mimeType: 'audio/mp4' };
+      }
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -159,9 +165,11 @@ export const useSmartRecorder = ({
       };
 
       mediaRecorder.start(chunkSizeMs);
+      return true;
     } catch (err) {
       console.error('Error accessing microphone', err);
       setState('idle');
+      return false;
     }
   };
 

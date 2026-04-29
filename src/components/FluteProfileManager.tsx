@@ -74,7 +74,10 @@ export const FluteProfileManager = () => {
       return;
     }
     setRecordingNote(note);
-    await startReadyMode();
+    const success = await startReadyMode();
+    if (!success) {
+      setRecordingNote(null);
+    }
   };
 
   const handlePlaySample = (note: string) => {
@@ -156,7 +159,7 @@ export const FluteProfileManager = () => {
                           <Loader size={12} className="animate-spin" /> PROC
                         </div>
                       )}
-                      <button onClick={() => stop()} className="mt-2 text-xs text-red-400 underline">Cancel</button>
+                      <button onClick={() => { stop(); setRecordingNote(null); }} className="mt-2 text-xs text-red-400 underline">Cancel</button>
                     </div>
                   ) : (
                     <div className="flex gap-2 w-full">
